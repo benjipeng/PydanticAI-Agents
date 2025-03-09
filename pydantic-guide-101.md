@@ -4,6 +4,8 @@
 
 This guide explores Pydantic - a data validation library that's fundamental to both FastAPI and PydanticAI frameworks. We'll examine key concepts, compare versions 1.x and 2.x, and understand the technical reasoning behind API changes.
 
+> **Note**: This guide primarily focuses on Pydantic 2.x, which is recommended for all new projects including PydanticAI. Version-specific differences are noted throughout.
+
 ## Prerequisites for Using PydanticAI
 
 While you don't need to master Pydantic before using PydanticAI, having basic familiarity is beneficial:
@@ -18,7 +20,9 @@ While you don't need to master Pydantic before using PydanticAI, having basic fa
   - Basic configuration options
   - Working with nested models
 
-## Essential Pydantic Concepts
+## Essential Pydantic Concepts (Pydantic 2.x)
+
+The following section focuses on Pydantic 2.x API, which is recommended for all new projects including PydanticAI. Where relevant, 1.x differences are noted in comments.
 
 ### 1. Basic Data Models
 
@@ -34,13 +38,13 @@ class User(BaseModel):
 
 **Why it matters**: 
 - In FastAPI: Used to define request/response models
-- In PydanticAI: Likely used to define agent states, inputs, and outputs
+- In PydanticAI: Used to define agent states, inputs, and outputs
 
 ### 2. Type Annotations and Validation
 
 ```python
 from pydantic import BaseModel, EmailStr, Field
-from typing import List, Optional
+from typing import List, Optional  # Or use Python 3.10+ syntax: list[str], str | None
 
 class User(BaseModel):
     id: int = Field(gt=0)  # Must be greater than 0
@@ -58,6 +62,8 @@ class User(BaseModel):
 ### 3. Nested Models
 
 ```python
+from typing import List
+
 class Address(BaseModel):
     street: str
     city: str
@@ -72,22 +78,33 @@ class User(BaseModel):
 - In FastAPI: Complex JSON structures
 - In PydanticAI: Agent structures with nested properties
 
-### 4. Model Config
+### 4. Model Config (Pydantic 2.x)
 
 ```python
 class User(BaseModel):
     name: str
     password: str
     
-    class Config:
-        extra = "forbid"  # Reject unknown fields
-        frozen = True  # Make immutable
-        json_schema_extra = {
-            "example": {
-                "name": "John Doe",
-                "password": "secret123"
-            }
+    model_config = {
+        "extra": "forbid",  # Reject unknown fields
+        "frozen": True,  # Make immutable (replaces allow_mutation in 1.x)
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "name": "John Doe",
+                    "password": "secret123"
+                }
+            ]
         }
+    }
+```
+
+**Note**: In Pydantic 1.x, you would use a nested `Config` class instead:
+```python
+class Config:
+    extra = "forbid"
+    allow_mutation = False
+    schema_extra = {...}
 ```
 
 **Why it matters**:
@@ -95,42 +112,50 @@ class User(BaseModel):
 - Enhances documentation
 - Improves security
 
-### 5. Data Conversion and Parsing
+### 5. Data Conversion and Parsing (Pydantic 2.x)
 
 ```python
 # Dict to model
 user_data = {"name": "John", "email": "john@example.com", "id": 1}
-user = User(**user_data)
+user = User(**user_data)  # Same in both versions
 
 # JSON to model
 user_json = '{"name": "John", "email": "john@example.com", "id": 1}'
-user = User.parse_raw(user_json)
+user = User.model_validate_json(user_json)  # In 1.x: User.parse_raw(user_json)
 
 # Model to dict
-user_dict = user.dict()
+user_dict = user.model_dump()  # In 1.x: user.dict()
+user_dict = user.model_dump(exclude={"password"})  # Excluding fields
 
 # Model to JSON
-user_json = user.json()
+user_json = user.model_dump_json()  # In 1.x: user.json()
 ```
 
 **Why it matters**:
 - Essential for API request/response handling
 - Useful for agent state serialization
 
-### 6. Validators and Field Constraints
+### 6. Validators and Field Constraints (Pydantic 2.x)
 
 ```python
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, Field, field_validator
 
 class User(BaseModel):
     name: str
     password: str = Field(min_length=8)
+    password_confirm: str
     
-    @validator('name')
+    @field_validator('name')  # In 1.x: @validator('name')
     def name_must_contain_space(cls, v):
         if ' ' not in v:
             raise ValueError('must contain a space')
         return v.title()
+    
+    @field_validator('password_confirm')
+    def passwords_match(cls, v, info):
+        if 'password' in info.data and v != info.data['password']:
+            raise ValueError('passwords do not match')
+        return v
 ```
 
 **Why it matters**:
