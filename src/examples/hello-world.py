@@ -5,9 +5,8 @@ from pydantic_ai import Agent
 load_dotenv(".env.local")
 
 agent = Agent(  
-    'google-gla:gemini-1.5-flash',
-    system_prompt='Be concise, reply with one sentence.', 
-    api_key=os.getenv("GOOGLE_API_KEY")  # Get API key from environment
+    'google-gla:gemini-2.0-flash',
+    system_prompt='Be concise, reply with one sentence.', # Get API key from environment
 )
 
 result = agent.run_sync('Where does "hello world" come from?')  
