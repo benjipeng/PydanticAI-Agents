@@ -9,7 +9,7 @@ This guide walks through setting up a GitHub Codespace for working with Pydantic
 3. Select the "Codespaces" tab
 4. Click "Create codespace on main"
 
-## 2. Environment Setup
+## 2. Environment Setup (with `.venv`)
 
 Once your Codespace is running, execute these commands in the terminal:
 
